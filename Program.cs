@@ -19,7 +19,6 @@ namespace Task3
     }
     class Program
     {
-        static private Encoding enc = new UTF8Encoding();
         static private byte[] buffer;
         static void Main(string[] args)
         {
@@ -83,23 +82,119 @@ namespace Task3
             if (x.length == 0 && y.length == 0) return 1;
             if (x.length == 0) return -1;
             if (y.length == 0) return 1;
-            long i = 0;
-            long j = 0;
-            int comp;
-            char[] chX = enc.GetChars(buffer, (int)x.index, (int)x.length);
-            char[] chY = enc.GetChars(buffer, (int)y.index, (int)y.length);
-            while ((comp = chX[i].CompareTo(chY[j])) == 0)
+            long i = x.index;
+            long j = y.index;
+            UInt32 codeX, codeY;
+            byte[] tempBuf = new byte[4];
+            int byteInSymbolX, byteInSymbolY;
+            while (true)
             {
-                i++;
-                j++;
-                if ((i == x.index + x.length) && (j == y.index + y.length))
+                byteInSymbolX = getByteInSymbol(i);
+                byteInSymbolY = getByteInSymbol(i);
+                
+                
+                switch (byteInSymbolX)
+                {
+                    case 1:
+                        tempBuf[0] = 0;
+                        tempBuf[1] = 0;
+                        tempBuf[2] = 0;
+                        tempBuf[3] = buffer[i];
+                        break;
+                    case 2:
+                        tempBuf[0] = 0;
+                        tempBuf[1] = 0;
+                        tempBuf[2] = buffer[i + 1];
+                        tempBuf[3] = buffer[i];
+                        break;
+                    case 3:
+                        tempBuf[0] = 0;
+                        tempBuf[1] = buffer[i + 2];
+                        tempBuf[2] = buffer[i + 1];
+                        tempBuf[3] = buffer[i];
+                        break;
+                    case 4:
+                        tempBuf[0] = buffer[i + 3];
+                        tempBuf[1] = buffer[i + 2];
+                        tempBuf[2] = buffer[i + 1];
+                        tempBuf[3] = buffer[i];
+                        break;
+                    default:
+                        throw new Exception();
+                }
+                codeX = BitConverter.ToUInt32(tempBuf, 0);
+                i += byteInSymbolX;
+
+                switch (byteInSymbolY)
+                {
+                    case 1:
+                        tempBuf[0] = 0;
+                        tempBuf[1] = 0;
+                        tempBuf[2] = 0;
+                        tempBuf[3] = buffer[j];
+                        break;
+                    case 2:
+                        tempBuf[0] = 0;
+                        tempBuf[1] = 0;
+                        tempBuf[2] = buffer[j + 1];
+                        tempBuf[3] = buffer[j];
+                        break;
+                    case 3:
+                        tempBuf[0] = 0;
+                        tempBuf[1] = buffer[j + 2];
+                        tempBuf[2] = buffer[j + 1];
+                        tempBuf[3] = buffer[j];
+                        break;
+                    case 4:
+                        tempBuf[0] = buffer[j + 3];
+                        tempBuf[1] = buffer[j + 2];
+                        tempBuf[2] = buffer[j + 1];
+                        tempBuf[3] = buffer[j];
+                        break;
+                    default:
+                        throw new Exception();
+                }
+                codeY = BitConverter.ToUInt32(tempBuf, 0);
+                j += byteInSymbolY;
+
+                if (codeX < codeY) return -1;
+                if (codeX > codeY) return 1;
+                if ((i >= x.index + x.length) && (j >= y.index + y.length))
+                {
                     return 0;
-                if (i == x.index + x.length)
+                }
+                if (i >= x.index + x.length)
+                {
                     return -1;
-                if (j == y.index + y.length)
+                }
+                if (j >= y.index + y.length)
+                {
                     return 1;
+                }
             }
-            return comp;
+        }
+
+        private static int getByteInSymbol(long i)
+        {
+            if ((buffer[i] & 0b10000000) == 0)
+            {
+                return 1;
+            }
+            else if ((buffer[i] & 0b11100000) == 0b11000000)
+            {
+                return 2;
+
+            }
+            else if ((buffer[i] & 0b11110000) == 0b11100000)
+            {
+                return 3;
+            }
+            else if ((buffer[i] & 0b11111000) == 0b11110000)
+            {
+                return 4;
+            }
+            else
+                throw new Exception();
         }
     }
 }
